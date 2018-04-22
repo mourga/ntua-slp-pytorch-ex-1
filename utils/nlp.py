@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 
 def tokenize(text, lowercase=True):
@@ -17,4 +17,12 @@ def vectorize(text, word2idx, max_length):
     Returns: zero-padded list of ids
 
     """
-    pass
+
+    text = text[:max_length]
+    vec = np.zeros(max_length, dtype=int)
+    for i, word in enumerate(text):
+        if word in word2idx.keys():
+            vec[i] = word2idx[word]
+        else:
+            vec[i] = word2idx['<unk>']
+    return vec
