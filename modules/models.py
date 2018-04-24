@@ -23,7 +23,7 @@ class BaselineLSTMModel(nn.Module):
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-
+        self.output_size = output_size
         # The linear layer that maps from hidden state space to tag space
         self.hidden2output = nn.Linear(hidden_dim, output_size)
         self.hidden = self.init_hidden()
@@ -50,5 +50,5 @@ class BaselineLSTMModel(nn.Module):
         x = embeds.view(len(sentence), 1, -1)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         y = self.hidden2output(lstm_out.view(len(sentence), -1))
-        output_scores = F.log_softmax(y, dim=1)
+        output_scores = F.log_softmax(y, dim=self.output_size)
         return output_scores

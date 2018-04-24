@@ -27,7 +27,7 @@ class SentenceDataset(Dataset):
                  lab2idx,
                  length=None,
                  name=None):
-
+        super(SentenceDataset, self).__init__()
         self.data = X
         self.labels = y
         self.name = name
@@ -91,7 +91,7 @@ class SentenceDataset(Dataset):
         # in order to feed them to the model
         vec_sample = vectorize(sample, self.word2idx, self.length)
 
-        return vec_sample, str(label), len(self.data[index])
+        return vec_sample, label, len(self.data[index])
 
     def twitter_preprocess(self):
         preprocessor = TextPreProcessor(
