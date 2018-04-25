@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class BaselineLSTMModel(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, vocab_size, output_size):
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, output_size=3):
         """
         Define the layers and initialize them.
 
@@ -18,7 +18,8 @@ class BaselineLSTMModel(nn.Module):
         """
         super(BaselineLSTMModel, self).__init__()
         self.hidden_dim = hidden_dim
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeddings = nn.Embedding(vocab_size,
+                                            embedding_dim)
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
@@ -26,8 +27,6 @@ class BaselineLSTMModel(nn.Module):
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2output = nn.Linear(hidden_dim, output_size)
-
-
 
 
     def forward(self, x):
@@ -41,5 +40,5 @@ class BaselineLSTMModel(nn.Module):
         embeds = self.word_embeddings(x)
 
         lstm_out, _ = self.lstm(embeds)
-        y = self.hidden2output(lstm_out)
-        return y
+        logits = self.hidden2output(lstm_out)
+        return logits

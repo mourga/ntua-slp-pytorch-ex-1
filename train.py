@@ -65,13 +65,14 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 # define a simple model, loss function and optimizer
 
 model = BaselineLSTMModel(embedding_dim=EMB_DIM, hidden_dim=HID_DIM,
-                       vocab_size=len(word2idx), output_size=len(lab2idx)).cuda(1)
-loss_function = nn.CrossEntropyLoss()
+                       vocab_size=len(word2idx), output_size=len(lab2idx))
+# if use_gpu:
+#     model.cuda(1)
 
+loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(parameters)
 
-# optimizer = torch.optim.SGD(model.parameters(), lr = 1e-2)
 
 #############################################################################
 # Training Pipeline
@@ -79,17 +80,13 @@ optimizer = torch.optim.Adam(parameters)
 
 # loop the dataset with the dataloader that you defined and train the model
 # for each batch return by the dataloader
-
-train_loss_ = []
-test_loss_ = []
-train_acc_ = []
-test_acc_ = []
 ### training procedure
-for epoch in range(EPOCHS):
+
+for epoch in range(1, EPOCHS + 1):
+
+    model.train()
     ## training epoch
-    total_acc = 0.0
     total_loss = 0.0
-    total = 0.0
     print('epoch', epoch)
     for iteration, batch in enumerate(loader_train, 1):
         samples, labels, lengths = batch
@@ -97,25 +94,25 @@ for epoch in range(EPOCHS):
         labels = Variable(labels)
         lengths = Variable(lengths)
 
-        if use_gpu:
-            samples = samples.cuda(1)
-            labels = labels.cuda(1)
-            lengths = lengths.cuda(1)
 
+        #1 - zero the gradients
         optimizer.zero_grad()
 
+        #2 - forward pass
         output = model(samples)
 
+        #3 - compute loss
         loss = loss_function(output, labels)
 
+        #4 - backward pass
         loss.backward()
 
+        #5 - optimizer step
         optimizer.step()
 
         total_loss += loss.data[0]
         print(loss.data[0])
 
-    # print("Epoch: ", iter, " train loss: ", total_loss / total, " accuracy ", total_acc / total)
 
 #     ## testing epoch
 #     total_acc = 0.0
