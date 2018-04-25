@@ -65,7 +65,7 @@ class SentenceDataset(Dataset):
         Returns:
             (tuple):
                 * example (ndarray): vector representation of a training example
-                * label (string): the class label
+                * label (int): the class label
                 * length (int): the length (tokens) of the sentence
 
         Examples:

@@ -18,7 +18,7 @@ from utils.utilities import label_mapping
 EMBEDDINGS = "embeddings/glove.twitter.27B.50d.txt"
 EMB_DIM = 50
 HID_DIM = 100
-BATCH_SIZE = 128
+BATCH_SIZE = 16
 EPOCHS = 50
 use_gpu = torch.cuda.is_available()
 print(use_gpu)
@@ -55,8 +55,8 @@ test_set = SentenceDataset(X_test, y_test,
                  length=50,
                  name='test')
 
-loader_train = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=6)
-loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=6)
+loader_train = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)
+loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 #############################################################################
 # Model Definition (Model, Loss Function, Optimizer)
@@ -65,9 +65,12 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, num_work
 # define a simple model, loss function and optimizer
 
 model = BaselineLSTMModel(embedding_dim=EMB_DIM, hidden_dim=HID_DIM,
-                       vocab_size=len(word2idx), output_size=len(lab2idx)).cuda()
+                       vocab_size=len(word2idx), output_size=len(lab2idx)).cuda(1)
 loss_function = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+parameters = filter(lambda p: p.requires_grad, model.parameters())
+optimizer = torch.optim.Adam(parameters)
+
 # optimizer = torch.optim.SGD(model.parameters(), lr = 1e-2)
 
 #############################################################################
@@ -87,39 +90,32 @@ for epoch in range(EPOCHS):
     total_acc = 0.0
     total_loss = 0.0
     total = 0.0
+    print('epoch', epoch)
     for iteration, batch in enumerate(loader_train, 1):
-        # train_inputs, train_labels = traindata
-        train_inputs = Variable(batch[0])
-        train_labels = Variable(batch[1])
-        # FIX TRAIN_LABELS
-        train_labels = torch.squeeze(train_labels)
+        samples, labels, lengths = batch
+        samples = Variable(samples)
+        labels = Variable(labels)
+        lengths = Variable(lengths)
 
         if use_gpu:
-            train_inputs = train_inputs.cuda()
-            train_labels = train_labels.cuda()
-        print('prothermainoume to fourno stous 180...')
-        model.zero_grad()
-        print("zero grad to model done")
-        model.batch_size = len(train_labels)
-        model.hidden = model.init_hidden()
-        print('twra tha tupwsw output')
-        output = model(train_inputs)
-        print('Perasame to Output')
-        loss = loss_function(output, train_labels)
-        print('perimenoume loss....')
+            samples = samples.cuda(1)
+            labels = labels.cuda(1)
+            lengths = lengths.cuda(1)
+
+        optimizer.zero_grad()
+
+        output = model(samples)
+
+        loss = loss_function(output, labels)
+
         loss.backward()
-        print('kaname backward......')
+
         optimizer.step()
 
-        # calc training acc
-        _, predicted = torch.max(output.data, 1)
-        total_acc += (predicted == train_labels).sum()
-        total += len(train_labels)
         total_loss += loss.data[0]
-        print(total_loss)
-    train_loss_.append(total_loss / total)
-    train_acc_.append(total_acc / total)
-    print("Epoch: ", iter, " train loss: ", total_loss / total, " accuracy ", total_acc / total)
+        print(loss.data[0])
+
+    # print("Epoch: ", iter, " train loss: ", total_loss / total, " accuracy ", total_acc / total)
 
 #     ## testing epoch
 #     total_acc = 0.0
@@ -130,7 +126,7 @@ for epoch in range(EPOCHS):
 #         test_labels = torch.squeeze(test_labels)
 #
 #         if use_gpu:
-#             test_inputs, test_labels = Variable(test_inputs.cuda()), test_labels.cuda()
+#             test_inputs, test_labels = Variable(test_inputs.cuda(1)), test_labels.cuda(1)
 #         else:
 #             test_inputs = Variable(test_inputs)
 #

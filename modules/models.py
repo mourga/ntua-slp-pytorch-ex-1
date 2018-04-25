@@ -23,22 +23,14 @@ class BaselineLSTMModel(nn.Module):
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.output_size = output_size
+
         # The linear layer that maps from hidden state space to tag space
         self.hidden2output = nn.Linear(hidden_dim, output_size)
-        self.hidden = self.init_hidden()
-
-    def init_hidden(self):
-        # Before we've done anything, we dont have any hidden state.
-        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        # the first is the hidden h
-        # the second is the cell c
-        return (autograd.Variable(torch.zeros(1, 1, self.hidden_dim)),
-                autograd.Variable(torch.zeros(1, 1, self.hidden_dim)))
 
 
 
-    def forward(self, sentence):
+
+    def forward(self, x):
         """
         This is the heart of the model.
         This function, defines how the data passes through the network.
@@ -46,9 +38,8 @@ class BaselineLSTMModel(nn.Module):
         Returns: the logits for each class
 
         """
-        embeds = self.word_embeddings(sentence)
-        x = embeds.view(len(sentence), 1, -1)
-        lstm_out, self.hidden = self.lstm(x, self.hidden)
-        y = self.hidden2output(lstm_out.view(len(sentence), -1))
-        output_scores = F.log_softmax(y, dim=self.output_size)
-        return output_scores
+        embeds = self.word_embeddings(x)
+
+        lstm_out, _ = self.lstm(embeds)
+        y = self.hidden2output(lstm_out)
+        return y
