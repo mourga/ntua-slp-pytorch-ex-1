@@ -67,8 +67,8 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 model = BaselineLSTMModel(embedding_dim=EMB_DIM, hidden_dim=HID_DIM,
                        vocab_size=len(word2idx), output_size=len(lab2idx))
-# if use_gpu:
-#     model.cuda(1)
+if use_gpu:
+    model.cuda(1)
 
 loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -95,6 +95,10 @@ for epoch in range(1, EPOCHS + 1):
         labels = Variable(labels)
         lengths = Variable(lengths)
 
+        if use_gpu:
+            samples = samples.cuda(1)
+            labels = labels.cuda(1)
+            lengths = lengths.cuda(1)
 
         #1 - zero the gradients
         optimizer.zero_grad()
