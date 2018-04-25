@@ -15,6 +15,7 @@ import numpy as np
 ########################################################
 from utils.utilities import label_mapping
 
+
 EMBEDDINGS = "embeddings/glove.twitter.27B.50d.txt"
 EMB_DIM = 50
 HID_DIM = 100
