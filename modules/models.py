@@ -1,10 +1,9 @@
-import torch
-from torch import nn, autograd
+from torch import nn, torch
 import torch.nn.functional as F
 
 
 class BaselineLSTMModel(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, vocab_size, output_size=3):
+    def __init__(self, embeddings, hidden_dim, output_size):
         """
         Define the layers and initialize them.
 
@@ -17,19 +16,24 @@ class BaselineLSTMModel(nn.Module):
         Args:
         """
         super(BaselineLSTMModel, self).__init__()
+        trainable_emb = False
         self.hidden_dim = hidden_dim
-        self.word_embeddings = nn.Embedding(vocab_size,
-                                            embedding_dim)
+        self.word_embeddings = nn.Embedding(num_embeddings=embeddings.shape[0],
+                                      embedding_dim=embeddings.shape[1])
+        self.init_embeddings(embeddings, trainable_emb)
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(embeddings.shape[1], hidden_dim, batch_first=True)
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2output = nn.Linear(hidden_dim, output_size)
 
+    def init_embeddings(self, weights, trainable):
+        self.word_embeddings.weight = nn.Parameter(torch.from_numpy(weights),
+                                             requires_grad=trainable)
 
-    def forward(self, x):
+    def forward(self, x, lengths):
         """
         This is the heart of the model.
         This function, defines how the data passes through the network.
@@ -40,5 +44,9 @@ class BaselineLSTMModel(nn.Module):
         embeds = self.word_embeddings(x)
 
         lstm_out, _ = self.lstm(embeds)
-        logits = self.hidden2output(lstm_out)
+        idx = (lengths - 1).view(-1, 1).expand(lstm_out.size(0),
+                                               lstm_out.size(2)).unsqueeze(1)
+        last_outputs = lstm_out.gather(1, idx).squeeze()
+
+        logits = self.hidden2output(last_outputs)
         return logits

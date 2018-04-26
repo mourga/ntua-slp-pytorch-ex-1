@@ -15,12 +15,12 @@ import numpy as np
 ########################################################
 from utils.utilities import label_mapping
 
-
 EMBEDDINGS = "embeddings/glove.twitter.27B.50d.txt"
 EMB_DIM = 50
 HID_DIM = 100
 BATCH_SIZE = 16
 EPOCHS = 50
+max_length = 40
 use_gpu = torch.cuda.is_available()
 print(use_gpu)
 ########################################################
@@ -45,16 +45,16 @@ lab2idx, idx2lab = label_mapping(y_train)
 
 # 2 - define the datasets
 train_set = SentenceDataset(X_train, y_train,
-                 word2idx,
-                 lab2idx,
-                 length=50,
-                 name='train')
+                            word2idx,
+                            lab2idx,
+                            length=max_length,
+                            name='train')
 
 test_set = SentenceDataset(X_test, y_test,
-                 word2idx,
-                 lab2idx,
-                 length=50,
-                 name='test')
+                           word2idx,
+                           lab2idx,
+                           length=max_length,
+                           name='test')
 
 loader_train = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)
 loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
@@ -65,15 +65,13 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 # define a simple model, loss function and optimizer
 
-model = BaselineLSTMModel(embedding_dim=EMB_DIM, hidden_dim=HID_DIM,
-                       vocab_size=len(word2idx), output_size=len(lab2idx))
+model = BaselineLSTMModel(embeddings, HID_DIM, len(lab2idx))
 if use_gpu:
     model.cuda(1)
 
 loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(parameters)
-
 
 #############################################################################
 # Training Pipeline
@@ -82,41 +80,45 @@ optimizer = torch.optim.Adam(parameters)
 # loop the dataset with the dataloader that you defined and train the model
 # for each batch return by the dataloader
 ### training procedure
+# acc = lambda y, y_hat: accuracy_score(y, y_hat)
+# f1 = lambda y, y_hat: f1_score(y, y_hat, average='macro')
 
 for epoch in range(1, EPOCHS + 1):
-
     model.train()
     ## training epoch
     total_loss = 0.0
     print('epoch', epoch)
     for iteration, batch in enumerate(loader_train, 1):
+        print("iteration", iteration)
         samples, labels, lengths = batch
         samples = Variable(samples)
         labels = Variable(labels)
         lengths = Variable(lengths)
 
-        if use_gpu:
+        if torch.cuda.is_available():
             samples = samples.cuda(1)
             labels = labels.cuda(1)
             lengths = lengths.cuda(1)
 
-        #1 - zero the gradients
+        # 1 - zero the gradients
         optimizer.zero_grad()
 
-        #2 - forward pass
-        output = model(samples)
+        # 2 - forward pass
+        output = model(samples, lengths)
 
-        #3 - compute loss
+        # 3 - compute loss
         loss = loss_function(output, labels)
 
-        #4 - backward pass
+        # 4 - backward pass
         loss.backward()
 
-        #5 - optimizer step
+        # 5 - optimizer step
         optimizer.step()
 
         total_loss += loss.data[0]
-        print(loss.data[0])
+        # print(total_loss)
+
+
 
 
 #     ## testing epoch
