@@ -21,8 +21,7 @@ HID_DIM = 100
 BATCH_SIZE = 16
 EPOCHS = 50
 max_length = 40
-use_gpu = torch.cuda.is_available()
-print(use_gpu)
+print(torch.cuda.is_available())
 ########################################################
 # Define the datasets/dataloaders
 ########################################################
@@ -66,30 +65,20 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 # define a simple model, loss function and optimizer
 
 model = BaselineLSTMModel(embeddings, HID_DIM, len(lab2idx))
-if use_gpu:
+if torch.cuda.is_available():
     model.cuda(1)
 
 loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(parameters)
 
-#############################################################################
-# Training Pipeline
-#############################################################################
 
-# loop the dataset with the dataloader that you defined and train the model
-# for each batch return by the dataloader
-### training procedure
-# acc = lambda y, y_hat: accuracy_score(y, y_hat)
-# f1 = lambda y, y_hat: f1_score(y, y_hat, average='macro')
-
-for epoch in range(1, EPOCHS + 1):
+def train_epoch(_epoch, data_loader, _model, _loss_function):
     model.train()
     ## training epoch
     total_loss = 0.0
     print('epoch', epoch)
-    for iteration, batch in enumerate(loader_train, 1):
-        print("iteration", iteration)
+    for iteration, batch in enumerate(data_loader, 1):
         samples, labels, lengths = batch
         samples = Variable(samples)
         labels = Variable(labels)
@@ -105,7 +94,7 @@ for epoch in range(1, EPOCHS + 1):
 
         # 2 - forward pass
         output = model(samples, lengths)
-
+        # output_new = output.cpu()
         # 3 - compute loss
         loss = loss_function(output, labels)
 
@@ -116,64 +105,20 @@ for epoch in range(1, EPOCHS + 1):
         optimizer.step()
 
         total_loss += loss.data[0]
-        # print(total_loss)
+
+    return total_loss
+
+#############################################################################
+# Train
+#############################################################################
+
+# loop the dataset with the dataloader that you defined and train the model
+# for each batch return by the dataloader
+
+# acc = lambda y, y_hat: accuracy_score(y, y_hat)
+# f1 = lambda y, y_hat: f1_score(y, y_hat, average='macro')
+
+for epoch in range(1, EPOCHS + 1):
+    print(train_epoch(epoch, loader_train, model, loss_function))
 
 
-
-
-#     ## testing epoch
-#     total_acc = 0.0
-#     total_loss = 0.0
-#     total = 0.0
-#     for iter, testdata in enumerate(test_loader):
-#         test_inputs, test_labels = testdata
-#         test_labels = torch.squeeze(test_labels)
-#
-#         if use_gpu:
-#             test_inputs, test_labels = Variable(test_inputs.cuda(1)), test_labels.cuda(1)
-#         else:
-#             test_inputs = Variable(test_inputs)
-#
-#         model.batch_size = len(test_labels)
-#         model.hidden = model.init_hidden()
-#         output = model(test_inputs.t())
-#
-#         loss = loss_function(output, Variable(test_labels))
-#
-#         # calc testing acc
-#         _, predicted = torch.max(output.data, 1)
-#         total_acc += (predicted == test_labels).sum()
-#         total += len(test_labels)
-#         total_loss += loss.data[0]
-#     test_loss_.append(total_loss / total)
-#     test_acc_.append(total_acc / total)
-#
-#     print('[Epoch: %3d/%3d] Training Loss: %.3f, Testing Loss: %.3f, Training Acc: %.3f, Testing Acc: %.3f'
-#           % (epoch, epochs, train_loss_[epoch], test_loss_[epoch], train_acc_[epoch], test_acc_[epoch]))
-#
-# param = {}
-# param['lr'] = learning_rate
-# param['batch size'] = batch_size
-# param['embedding dim'] = embedding_dim
-# param['hidden dim'] = hidden_dim
-# param['sentence len'] = sentence_len
-
-# result = {}
-# result['train loss'] = train_loss_
-# result['test loss'] = test_loss_
-# result['train acc'] = train_acc_
-# result['test acc'] = test_acc_
-# result['param'] = param
-#
-# if use_plot:
-#     import PlotFigure as PF
-#
-#     PF.PlotFigure(result, use_save)
-# if use_save:
-#     filename = 'log/LSTM_classifier_' + datetime.now().strftime("%d-%h-%m-%s") + '.pkl'
-#     result['filename'] = filename
-#
-#     fp = open(filename, 'wb')
-#     pickle.dump(result, fp)
-#     fp.close()
-#     print('File %s is saved.' % filename)

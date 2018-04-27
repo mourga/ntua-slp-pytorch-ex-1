@@ -91,7 +91,8 @@ class SentenceDataset(Dataset):
         # in order to feed them to the model
         vec_sample = vectorize(sample, self.word2idx, self.length)
 
-        return vec_sample, label, len(self.data[index])
+        # PROSOXH EIXAME BUUUUUUUUUUUUUUUUUUUG ZHTAGAME index POU > MAX_LENGTH
+        return vec_sample, label, min(len(self.data[index]), self.length)
 
     def twitter_preprocess(self):
         preprocessor = TextPreProcessor(

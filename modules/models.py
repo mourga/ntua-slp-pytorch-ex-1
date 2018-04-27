@@ -46,7 +46,8 @@ class BaselineLSTMModel(nn.Module):
         lstm_out, _ = self.lstm(embeds)
         idx = (lengths - 1).view(-1, 1).expand(lstm_out.size(0),
                                                lstm_out.size(2)).unsqueeze(1)
-        last_outputs = lstm_out.gather(1, idx).squeeze()
+        last_outputs = torch.gather(lstm_out, 1, idx).squeeze()
 
         logits = self.hidden2output(last_outputs)
+
         return logits
