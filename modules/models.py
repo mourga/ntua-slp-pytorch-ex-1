@@ -21,10 +21,12 @@ class BaselineLSTMModel(nn.Module):
         self.word_embeddings = nn.Embedding(num_embeddings=embeddings.shape[0],
                                       embedding_dim=embeddings.shape[1])
         self.init_embeddings(embeddings, trainable_emb)
-
+        # the dropout "layer" for the word embeddings
+        self.drop_emb = nn.Dropout(0.2)
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embeddings.shape[1], hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(embeddings.shape[1], hidden_dim, batch_first=True, dropout=0.2)
+        self.drop_rnn = nn.Dropout(0.2)
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2output = nn.Linear(hidden_dim, output_size)
@@ -42,12 +44,13 @@ class BaselineLSTMModel(nn.Module):
 
         """
         embeds = self.word_embeddings(x)
+        embeds = self.drop_emb(embeds)
 
         lstm_out, _ = self.lstm(embeds)
         idx = (lengths - 1).view(-1, 1).expand(lstm_out.size(0),
                                                lstm_out.size(2)).unsqueeze(1)
         last_outputs = torch.gather(lstm_out, 1, idx).squeeze()
-
+        last_outputs = self.drop_rnn(last_outputs)
         logits = self.hidden2output(last_outputs)
 
         return logits
