@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 from torch import nn
 from modules.dataloaders import SentenceDataset
-from modules.models import BaselineLSTMModel
+from modules.models import BaselineLSTMModel, AttentionalLSTM
 from utils.load_embeddings import load_word_vectors
 from utils.load_data import *
 from utils.utilities import *
@@ -28,6 +28,7 @@ print(torch.cuda.is_available())
 # 1 - load word embeddings
 print("loading word embeddings...")
 word2idx, idx2word, embeddings = load_word_vectors(EMBEDDINGS, EMB_DIM)
+# embeddings: numpy array vocab_size x emb_size
 
 # you can load the raw data like this:
 train = load_semeval2017A("datasets/Semeval2017A/train_dev")
@@ -63,7 +64,17 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 # define a simple model, loss function and optimizer
 
-model = BaselineLSTMModel(embeddings, HID_DIM, len(lab2idx))
+# model = BaselineLSTMModel(embeddings,
+#                           hidden_dim=HID_DIM,
+#                           output_size=len(lab2idx),
+#                           dropout_emb=0.3,
+#                           dropout_lstm=0.5)
+
+model = AttentionalLSTM(embeddings,
+                          hidden_dim=HID_DIM,
+                          output_size=len(lab2idx),
+                          dropout_emb=0.3,
+                          dropout_lstm=0.5)
 if torch.cuda.is_available():
     model.cuda(1)
 
@@ -71,13 +82,12 @@ loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(parameters)
 
-
 for epoch in range(1, EPOCHS + 1):
     #############################################################################
     # Train
     #############################################################################
     train_loss = train_epoch(epoch, loader_train, model, loss_function, optimizer,
-                BATCH_SIZE, train_set)
+                             BATCH_SIZE, train_set)
 
     #############################################################################
     # Test
@@ -87,6 +97,6 @@ for epoch in range(1, EPOCHS + 1):
     accuracy = accuracy_score(y, y_pred)
     f1 = f1_score(y, y_pred, average='macro')
     print("\tTest: train loss={:.4f}, val loss={:.4f}, acc={:.4f}, f1={:.4f}".format(train_loss,
-                                                                                      val_loss,
-                                                              accuracy,
-                                                              f1))
+                                                                                     val_loss,
+                                                                                     accuracy,
+                                                                                     f1))
