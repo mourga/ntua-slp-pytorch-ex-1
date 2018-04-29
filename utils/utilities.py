@@ -64,10 +64,10 @@ def train_epoch(epoch, data_loader, model, loss_function, optimizer,
         labels = Variable(labels)
         lengths = Variable(lengths)
 
-        if torch.cuda.is_available():
-            samples = samples.cuda(1)
-            labels = labels.cuda(1)
-            lengths = lengths.cuda(1)
+        # if torch.cuda.is_available():
+        #     samples = samples.cuda(1)
+        #     labels = labels.cuda(1)
+        #     lengths = lengths.cuda(1)
 
         # 1 - zero the gradients
         optimizer.zero_grad()

@@ -1,7 +1,7 @@
 from torch import nn, torch
 import torch.nn.functional as F
 
-from modules.layers import SelfAttention
+from modules.layers import Attention
 
 
 class BaselineLSTMModel(nn.Module):
@@ -61,6 +61,7 @@ class BaselineLSTMModel(nn.Module):
 
         return logits
 
+
 class AttentionalLSTM(nn.Module):
     def __init__(self, embeddings, hidden_dim, output_size, dropout_emb, dropout_lstm):
         """
@@ -85,12 +86,12 @@ class AttentionalLSTM(nn.Module):
 
         # 2) LSTM layer
         self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(embeddings.shape[1],
-                            hidden_dim,
+        self.lstm = nn.LSTM(input_size=embeddings.shape[1],
+                            hidden_size=hidden_dim,
                             batch_first=True,
                             dropout=dropout_lstm)
         self.drop_lstm = nn.Dropout(dropout_lstm)
-        self.attention = SelfAttention(attention_size=hidden_dim, batch_first=True)
+        self.attention = Attention(attention_size=hidden_dim, batch_first=True)
 
         # 3) linear layer -> outputs
         self.hidden2output = nn.Linear(hidden_dim, output_size)
@@ -113,13 +114,13 @@ class AttentionalLSTM(nn.Module):
         embeds = self.drop_emb(embeds)
 
         lstm_out, _ = self.lstm(embeds)
+        lstm_out = self.drop_lstm(lstm_out)
 
         # idx = (lengths - 1).view(-1, 1).expand(lstm_out.size(0),
         #                                        lstm_out.size(2)).unsqueeze(1)
         # last_outputs = torch.gather(lstm_out, 1, idx).squeeze()
         # last_outputs = self.drop_lstm(last_outputs)
-        representations, scores = SelfAttention(lstm_out, lengths)
+        representations, scores = self.attention(lstm_out, lengths)
         logits = self.hidden2output(representations)
 
         return logits
-

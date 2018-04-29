@@ -17,7 +17,7 @@ from utils.utilities import label_mapping
 EMBEDDINGS = "embeddings/glove.twitter.27B.50d.txt"
 EMB_DIM = 50
 HID_DIM = 100
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 EPOCHS = 50
 max_length = 40
 print(torch.cuda.is_available())
@@ -71,12 +71,12 @@ loader_test = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 #                           dropout_lstm=0.5)
 
 model = AttentionalLSTM(embeddings,
-                          hidden_dim=HID_DIM,
-                          output_size=len(lab2idx),
-                          dropout_emb=0.3,
-                          dropout_lstm=0.5)
-if torch.cuda.is_available():
-    model.cuda(1)
+                        hidden_dim=HID_DIM,
+                        output_size=len(lab2idx),
+                        dropout_emb=0.3,
+                        dropout_lstm=0.5)
+# if torch.cuda.is_available():
+#     model.cuda(1)
 
 loss_function = nn.CrossEntropyLoss()
 parameters = filter(lambda p: p.requires_grad, model.parameters())

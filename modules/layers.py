@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from torch.nn import Parameter, init
 import numpy as np
 
-class SelfAttention(nn.Module):
+class Attention(nn.Module):
     def __init__(self,
                  attention_size,
                  batch_first=False,
@@ -23,9 +23,10 @@ class SelfAttention(nn.Module):
             dropout (float):
             non_linearity (str):
         """
-        super(SelfAttention, self).__init__()
+        super(Attention, self).__init__()
 
         self.batch_first = batch_first
+        self.attention_size = attention_size
 
         # the attention vector, has the same dimensionality as each of the
         # vectors of the input sequence
@@ -38,7 +39,7 @@ class SelfAttention(nn.Module):
         # but in this case you have to initialize the Parameter yourself,
         # since otherwise it will be a zero vector and it will learn nothing.
 
-        self.attention_weights = Parameter(torch.FloatTensor(int(attention_size)))
+        self.attention_weights = Parameter(torch.FloatTensor(int(self.attention_size)))
         # attention weights size = hidden size
         init.uniform(self.attention_weights.data, -0.005, 0.005)
 
@@ -53,7 +54,7 @@ class SelfAttention(nn.Module):
         mask = Variable(torch.ones(attentions.size())).detach()
 
         if attentions.data.is_cuda:
-            mask = mask.cuda()
+            mask = mask.cuda(1)
 
         for i, l in enumerate(lengths.data):  # skip the first sentence
             if l < max_len:
@@ -78,31 +79,37 @@ class SelfAttention(nn.Module):
         # inputs is a 3D Tensor: batch, len, hidden_size
         # scores is a 2D Tensor: batch, len
 
+
         # 1.1 - dot product of inputs with attention vector and get the scores
-        scores = np.dot(inputs, self.attention)
-        representations = []
+        scores = inputs.matmul(self.attention_weights)
+        # representations = []
 
         # 1.2 - apply the activation function (non-linearity) to the scores
+        scores = self.activation(scores)
 
         # 1.3 - softmax operation to the scores,
         # in order to normalize the distribution of weights
+        scores = self.softmax(scores)
 
         ##################################################################
         # Step 2 - Masking
         ##################################################################
 
         # 2.1 - construct a mask, based on sentence lengths
-
+        mask = self.get_mask(scores, lengths)
         # 2.2 - apply the mask - zero out masked timesteps
-
+        scores = mask * scores
         # 2.3 - re-normalize the masked scores
+        _sums = scores.sum(-1, keepdim=True)  # sums per row
+        scores = scores.div(_sums)  # divide by row sum
 
         ##################################################################
         # Step 3 - Weighted sum of hidden states, by the attention scores
         ##################################################################
 
         # 3.1 - multiply each hidden state with the attention weights
-
+        weighted = torch.mul(inputs, scores.unsqueeze(-1).expand_as(inputs))
         # 3.2 - sum the hidden states
-
+        representations = weighted.sum(1) #.squeeze()
         return representations, scores
+
